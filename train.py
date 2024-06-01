@@ -40,3 +40,19 @@ def train(model, dataloader, device, epochs=10):
         print(
             f"Epoch complete. Avg batch loss: {avg_batch_loss}. {int((time.time() - start_time) / 60)} minutes have elapsed"
         )
+
+
+def compute_accuracy(model, dataloader, device):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():  # Disable gradient calculation
+        for data, label in dataloader:
+            batch_size = data.size(0)
+            logits = model(data.to(device))
+            probabilities = torch.softmax(logits, 1)
+            # choose highest probability index
+            predicted = torch.max(probabilities, 1)[1]
+            total += batch_size
+            correct += (predicted == label.to(device)).sum().item()
+    return correct / total

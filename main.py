@@ -4,8 +4,8 @@ import click
 import torch
 
 from model import CNN
-from train import train
-from utils import compute_accuracy, get_dataloader, load_saved_model
+from train import compute_accuracy, train
+from utils import get_dataloader, load_saved_model
 
 torch.manual_seed(1337)
 

@@ -25,19 +25,3 @@ def load_saved_model(model_file, device):
     model.load_state_dict(torch.load(model_file, map_location=torch.device(device)))
     model.to(device)
     return model
-
-
-def compute_accuracy(model, dataloader, device):
-    model.eval()
-    correct = 0
-    total = 0
-    with torch.no_grad():  # Disable gradient calculation
-        for data, label in dataloader:
-            batch_size = data.size(0)
-            logits = model(data.to(device))
-            probabilities = torch.softmax(logits, 1)
-            # choose highest probability index
-            predicted = torch.max(probabilities, 1)[1]
-            total += batch_size
-            correct += (predicted == label.to(device)).sum().item()
-    return correct / total

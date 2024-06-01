@@ -2,7 +2,7 @@
 Create a CNN model to classify handwritten images of digits (MNIST dataset)
 
 1. Train the model
-Currently 10 epochs, which takes < 1 min to train
+Currently 10 epochs, which takes 1 min to train
 ```
 py main.py train_model
 ```
@@ -12,6 +12,6 @@ py main.py train_model
 py main.py test_model
 ```
 
-Accuracy is 97%
+Accuracy is 98%
 
 
