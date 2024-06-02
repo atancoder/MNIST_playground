@@ -15,3 +15,12 @@ py main.py test_model
 Accuracy is 98%
 
 
+## Fine Tuning ViT
+Fine tune ViT on the MNIST dataset
+
+```
+py main.py fine_tune
+```
+Accuracy is 99.6%
+
+
