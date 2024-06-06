@@ -22,7 +22,7 @@ Accuracy is 98%
 Fine tune [ViT](https://huggingface.co/google/vit-base-patch16-224) on the MNIST dataset
 
 ```
-py main.py fine_tune
+py main.py fine_tune  --saved_model atancoder/ViT_fine_tuned_mnist
 ```
 Accuracy is 99.6%
 

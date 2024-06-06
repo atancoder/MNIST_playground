@@ -55,7 +55,7 @@ def fine_tune(saved_model):
         output_dir="./results",
         per_device_train_batch_size=32,
         per_device_eval_batch_size=32,
-        num_train_epochs=2,
+        num_train_epochs=1,
         save_strategy="epoch",
         save_total_limit=1,
         remove_unused_columns=False,
