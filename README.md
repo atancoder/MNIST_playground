@@ -1,4 +1,7 @@
 # MNIST
+Playing around with the MNIST dataset using ML
+
+## CNN Model
 Create a CNN model to classify handwritten images of digits (MNIST dataset)
 
 1. Train the model
