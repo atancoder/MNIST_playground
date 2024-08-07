@@ -44,3 +44,12 @@ For linear model
 For CNN model
 - LR: 1e-4
 - LD step size: 1e-1
+
+
+## VAE
+
+```
+cd VAE
+py main.py train_model
+py main.py gen_images
+```
