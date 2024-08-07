@@ -27,3 +27,12 @@ py main.py fine_tune  --saved_model atancoder/ViT_fine_tuned_mnist
 Accuracy is 99.6%
 
 
+## Generative Eneergy Model
+Create a simple energy model that can generate images
+
+```
+cd energy_model
+py main.py train_model
+py main.py gen_images
+
+```

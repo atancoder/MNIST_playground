@@ -5,7 +5,7 @@ import torch
 from datasets import load_dataset, load_metric
 from torchvision import datasets, transforms
 
-from model import CNN
+from cnn_model import CNN
 
 
 def get_accuracy_metric():

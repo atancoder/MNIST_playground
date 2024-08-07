@@ -9,7 +9,7 @@ from transformers import (
     ViTImageProcessor,
 )
 
-from model import CNN
+from cnn_model import CNN
 from train import compute_accuracy, train
 from utils import (
     get_accuracy_metric,
