@@ -32,8 +32,11 @@ def get_images_in_vit_format(processor):
     mnist = load_dataset("mnist")
     return mnist["train"].with_transform(process), mnist["test"].with_transform(process)
 
+def filter_dataset(dataset, digit_class):
+    indices = [i for i, label in enumerate(dataset.targets) if label == digit_class]
+    return torch.utils.data.Subset(dataset, indices)
 
-def get_dataloader(train: bool = True, batch_size: int = 64, is_vit: bool = False):
+def get_dataloader(train: bool = True, batch_size: int = 64, is_vit: bool = False, digit_class=None):
     processing_transforms = [
         transforms.ToTensor()
     ]  # This automatically scales pixel values to [0, 1]
@@ -47,6 +50,8 @@ def get_dataloader(train: bool = True, batch_size: int = 64, is_vit: bool = Fals
         download=True,
         transform=transforms.Compose(processing_transforms),
     )
+    if digit_class is not None:
+        dataset = filter_dataset(dataset, digit_class)
     return torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 

@@ -36,3 +36,11 @@ py main.py train_model
 py main.py gen_images
 
 ```
+
+For linear model
+- LR: 1e-5
+- LD step size: 1e-3
+
+For CNN model
+- LR: 1e-4
+- LD step size: 1e-1
