@@ -22,10 +22,10 @@ DEVICE = (
 )
 print(f"Using {DEVICE} device")
 LR = 1e-5
-EPOCHS = 10
+EPOCHS = 1
 
 
-def gen_fake_data(model, data, n_steps=10, lr=1e-3, noise_scale=0.005):
+def gen_fake_data(model, data, n_steps=10, step_size=1e-3):
     """
     Langevin Dynamics MCMC
     Start with random noise, then iteratively improve noise by
@@ -39,7 +39,7 @@ def gen_fake_data(model, data, n_steps=10, lr=1e-3, noise_scale=0.005):
         energy = model(fake_data).mean()
         energy.backward()
         # find gradient for fake_data and update it based on learning rate
-        fake_data.data -= lr * fake_data.grad
+        fake_data.data -= step_size * fake_data.grad
         fake_data.data = torch.clip(fake_data.data, 0, 1)
         fake_data.grad.zero_()
 
@@ -47,7 +47,20 @@ def gen_fake_data(model, data, n_steps=10, lr=1e-3, noise_scale=0.005):
     return fake_data
 
 
-def train(model, dataloader):
+def validate(model, dataloader):
+    total_loss = 0
+    for _, batch in enumerate(dataloader):
+        data = batch[0].to(DEVICE)
+        energy_score = model(data).mean()
+        fake_energy_score = model(gen_fake_data(model, data)).mean()
+
+        cd_loss = energy_score - fake_energy_score
+        total_loss += cd_loss.item()
+    avg_batch_loss = total_loss / len(dataloader)
+    print(f"Validation batch loss: {avg_batch_loss}")
+
+
+def train(model, dataloader, validation_dataloader):
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-5)
     model.train()
     for epoch in range(EPOCHS):
@@ -65,6 +78,7 @@ def train(model, dataloader):
             if batch_id % 100 == 0:
                 print(f"Batch {batch_id} loss: {cd_loss.item()}")
                 print(f"real energy: {energy_score}. fake energy: {fake_energy_score}")
+                validate(model, validation_dataloader)
 
 
 def load_saved_model(model_file):
@@ -79,7 +93,8 @@ def load_saved_model(model_file):
 def train_model(saved_model_file):
     model = EnergyModel().to(DEVICE)
     train_dataloader = get_dataloader(train=True)
-    train(model, train_dataloader)
+    test_dataloader = get_dataloader(train=False)
+    train(model, train_dataloader, test_dataloader)
     torch.save(model.state_dict(), saved_model_file)
     print("Saved model")
 
@@ -97,8 +112,6 @@ def gen_images(
     fake_data_energy = model(fake_data).mean()
     print(f"Fake energy: {fake_data_energy.item()}")
 
-    # train_dataloader = get_dataloader(train=True)
-    # fake_data = next(iter(train_dataloader))[0]
     to_pil = transforms.ToPILImage()
     for i in range(10):
         pil_image = to_pil(fake_data[i].squeeze(0))  # Remove the channel dimension
