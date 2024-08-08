@@ -30,6 +30,9 @@ Accuracy is 99.6%
 ## Generative Eneergy Model
 Create a simple energy model that can generate images
 
+Linear model works better than CNN. Images generated not as good as VAE.
+Had to subset data to a particular class label to get it working decently.
+
 ```
 cd energy_model
 py main.py train_model
@@ -47,6 +50,7 @@ For CNN model
 
 
 ## VAE
+Works great! Trained for 50 epochs
 
 ```
 cd VAE

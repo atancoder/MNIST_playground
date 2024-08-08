@@ -21,68 +21,61 @@ DEVICE = (
     else "mps" if torch.backends.mps.is_available() else "cpu"  # type: ignore
 )
 print(f"Using {DEVICE} device")
-LR = 1e-5
-EPOCHS = 1
+LR = 1e-3
+EPOCHS = 50
+Z_DIM = 96
 
 
-def gen_fake_data(model, data, n_steps=10, step_size=1e-3):
-    """
-    Langevin Dynamics MCMC
-    Start with random noise, then iteratively improve noise by
-    doing gradient descent based on energy function
-
-    Note: we don't want to update the model's weights, only the fake_data's
-    """
-    fake_data = torch.randn_like(data)
-    fake_data.requires_grad = True
-    for _ in range(n_steps):
-        energy = model(fake_data).mean()
-        energy.backward()
-        # find gradient for fake_data and update it based on learning rate
-        fake_data.data -= step_size * fake_data.grad
-        fake_data.data = torch.clip(fake_data.data, 0, 1)
-        fake_data.grad.zero_()
-
-    fake_data.requires_grad = False
-    return fake_data
+def gen_image(model):
+    z = torch.randn_like(torch.rand(Z_DIM)).to(DEVICE).unsqueeze(0)
+    return model.decode(z)
 
 
 def validate(model, dataloader):
     total_loss = 0
     for _, batch in enumerate(dataloader):
         data = batch[0].to(DEVICE)
-        energy_score = model(data).mean()
-        fake_energy_score = model(gen_fake_data(model, data)).mean()
+        recon_data, mu, logvar = model(data)
+        recon_loss = torch.nn.functional.binary_cross_entropy(
+            recon_data, data, reduction="sum"
+        )
+        kl_divergence = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        loss = recon_loss + kl_divergence
 
-        cd_loss = energy_score - fake_energy_score
-        total_loss += cd_loss.item()
+        total_loss += loss.item()
     avg_batch_loss = total_loss / len(dataloader)
     print(f"Validation batch loss: {avg_batch_loss}")
 
 
-def train(model, dataloader, validation_dataloader):
+def train(model, dataloader, validation_dataloader, saved_model_file):
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-5)
     model.train()
     for epoch in range(EPOCHS):
         print(f"Starting epoch: {epoch}")
+        total_loss = 0
         for batch_id, batch in enumerate(dataloader):
             data = batch[0].to(DEVICE)
-            energy_score = model(data).mean()
-            fake_energy_score = model(gen_fake_data(model, data)).mean()
+            recon_data, mu, logvar = model(data)
 
-            cd_loss = energy_score - fake_energy_score
-            optimizer.zero_grad()  # zero grad here before step since generating fake data may have accumulated gradients
-            cd_loss.backward()
+            recon_loss = torch.nn.functional.binary_cross_entropy(
+                recon_data, data, reduction="sum"
+            )
+            kl_divergence = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+            loss = recon_loss + kl_divergence
+            optimizer.zero_grad()
+            loss.backward()
             optimizer.step()
+            total_loss += loss.item()
 
-            if batch_id % 100 == 0:
-                print(f"Batch {batch_id} loss: {cd_loss.item()}")
-                print(f"real energy: {energy_score}. fake energy: {fake_energy_score}")
-                validate(model, validation_dataloader)
+        print(f"Epoch {epoch} avg batch loss: {total_loss / len(dataloader)}")
+        # validate(model, validation_dataloader)
+        torch.save(model.state_dict(), saved_model_file)
+        print("Saved model")
 
 
 def load_saved_model(model_file):
-    model = VAE()
+    print("Loading saved model")
+    model = VAE(z_dim=Z_DIM, device=DEVICE)
     model.load_state_dict(torch.load(model_file, map_location=torch.device(DEVICE)))
     model.to(DEVICE)
     return model
@@ -91,12 +84,13 @@ def load_saved_model(model_file):
 @click.command(name="train_model")
 @click.option("--saved_model_file", "saved_model_file", default="model.pt")
 def train_model(saved_model_file):
-    model = VAE().to(DEVICE)
+    if os.path.exists(saved_model_file):
+        model = load_saved_model(saved_model_file)
+    else:
+        model = VAE(z_dim=Z_DIM, device=DEVICE).to(DEVICE)
     train_dataloader = get_dataloader(train=True)
     test_dataloader = get_dataloader(train=False)
-    train(model, train_dataloader, test_dataloader)
-    torch.save(model.state_dict(), saved_model_file)
-    print("Saved model")
+    train(model, train_dataloader, test_dataloader, saved_model_file)
 
 
 @click.command(name="gen_images")
@@ -106,15 +100,12 @@ def gen_images(
     saved_model_file: str,
     output_dir: str,
 ):
+    num_images = 5
     model = load_saved_model(saved_model_file)
-    data = torch.rand(10, 1, 28, 28).to(DEVICE)
-    fake_data = gen_fake_data(model, data, n_steps=1000)
-    fake_data_energy = model(fake_data).mean()
-    print(f"Fake energy: {fake_data_energy.item()}")
-
     to_pil = transforms.ToPILImage()
-    for i in range(10):
-        pil_image = to_pil(fake_data[i].squeeze(0))  # Remove the channel dimension
+    for i in range(num_images):
+        image = gen_image(model)
+        pil_image = to_pil(image.squeeze(1))  # Remove the channel dimension
         pil_image.save(os.path.join(output_dir, f"image_{i}.png"))
 
 
